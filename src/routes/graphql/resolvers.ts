@@ -1,4 +1,7 @@
+
 import { MemberType, Post, PrismaClient, Profile } from '@prisma/client';
+import DataLoader from 'dataloader';
+import { GraphQLResolveInfo } from 'graphql';
 
 export type UserType = {
   id: string,
@@ -9,27 +12,66 @@ export type UserType = {
 export const profileResolver = async (
   source: UserType,
   args: object,
-  context: PrismaClient,
+  context: {prisma: PrismaClient, dataloaders: WeakMap<object, DataLoader<string, any, string>> },
+  info: GraphQLResolveInfo,
 ): Promise<Profile | null> => {
-  return await context.profile.findUnique({
-    where: {
-      userId: source.id,
-    },
-  });
+  const { dataloaders } = context;
+  let dl = dataloaders.get(info.fieldNodes);
+
+  if (!dl) {
+    dl = new DataLoader(async (ids: readonly string[]) => {
+      const profiles = await context.prisma.profile.findMany({
+        where: {
+          userId: { in: ids as string[] },
+        },
+      });
+
+      const sortedInIdsOrder = ids.map(id =>
+        profiles.find(profile => profile.userId === id),
+      );
+
+      return sortedInIdsOrder;
+      });
+          
+    dataloaders.set(info.fieldNodes, dl);
+  }
+
+  return dl.load(source.id) as Promise<Profile | null>;
 };
 
 export const postsResolver = async (
   source: UserType,
   args: object,
-  context: PrismaClient,
+  context: {
+        prisma: PrismaClient;
+        dataloaders: WeakMap<object, DataLoader<string, any, string>>,
+  },
+  info: GraphQLResolveInfo
 ): Promise<Post[] | null> => {
-  return await context.post.findMany({
-      where: {
-        authorId: source.id,
-      },
-  });
-};
+  const { dataloaders } = context;
 
+  let dl = dataloaders.get(info.fieldNodes);
+
+  if (!dl) {
+    dl = new DataLoader(async (ids: readonly string[]) => {
+      const posts = await context.prisma.post.findMany({
+        where: {
+          authorId: { in: ids  as string[] },
+        },
+      });
+
+    const sortedInIdsOrder = ids.map(id =>
+      posts.filter(post => post.authorId === id),
+    );
+
+    return sortedInIdsOrder;
+    });
+
+  dataloaders.set(info.fieldNodes, dl);
+  }
+
+  return dl.load(source.id) as Promise<Post[]|[]>;
+};
 
 type ProfileType = {
   id: string,
@@ -42,44 +84,122 @@ type ProfileType = {
 export const memberTypeResolver = async (
   source: ProfileType,
   args: object,
-  context: PrismaClient,
-): Promise<MemberType | null> => {
-  return context.memberType.findUnique({
-    where: {
-      id: source.memberTypeId
-    },
-  });
+  context: {
+        prisma: PrismaClient;
+        dataloaders: WeakMap<object, DataLoader<string, any, string>>,
+  },
+  info: GraphQLResolveInfo
+): Promise<MemberType[] | null> => {
+  const { dataloaders } = context;
+
+  let dl = dataloaders.get(info.fieldNodes);
+
+  if (!dl) {
+    dl = new DataLoader(async (ids: readonly string[]) => {
+      const memberTypes = await context.prisma.memberType.findMany({
+        where: { id: { in: ids as string[] }},
+      });
+            
+      const sortedInIdsOrder = ids.map(id =>
+        memberTypes.find((memberType) => memberType.id === id),
+      );
+            
+    return sortedInIdsOrder;
+    });
+
+  dataloaders.set(info.fieldNodes, dl);
+  }
+  
+  return dl.load(source.memberTypeId) as  Promise<MemberType[] | null> ;
 };
+
 
 export const UserSubscribedToResolver = async (
   source: UserType,
   args: object,
-  context: PrismaClient,
+  context: {
+        prisma: PrismaClient;
+        dataloaders: WeakMap<object, DataLoader<string, any, string>>,
+  },
+  info: GraphQLResolveInfo
 ): Promise<UserType[] | null> => {
-  return context.user.findMany({
-    where: {
-      subscribedToUser: {
-        some: {
-          subscriberId: source.id,
+  const { dataloaders } = context;
+
+  let dl = dataloaders.get(info.fieldNodes);
+
+  if (!dl) {
+    dl = new DataLoader(async (ids: readonly string[]) => {
+      const users = await context.prisma.user.findMany({
+        where: { 
+          subscribedToUser: { 
+            some: {
+              subscriberId: {
+                in: ids as string[],
+              }
+            }
+          }
         },
-      },
-    },
-  });
+        include: { 
+          subscribedToUser: true,
+        },
+        });
+
+        const sortedInIdsOrder = ids.map(id => 
+          users.filter(user => 
+          user.subscribedToUser.every(subscriber => subscriber.subscriberId === id),
+        ));
+
+      return sortedInIdsOrder;
+    });
+
+    dataloaders.set(info.fieldNodes, dl);
+    } 
+
+  return dl.load(source.id) as  Promise<UserType[] | null> ;
 };
 
 
 export const SubscribedToUserResolver = async (
   source: UserType,
   args: object,
-  context: PrismaClient,
+  context: {
+        prisma: PrismaClient;
+        dataloaders: WeakMap<object, DataLoader<string, any, string>>,
+  },
+  info: GraphQLResolveInfo
 ): Promise<UserType[] | null> => {
- return context.user.findMany({
-    where: {
-      userSubscribedTo: {
-        some: {
-          authorId: source.id,
+  const { dataloaders } = context;
+
+  let dl = dataloaders.get(info.fieldNodes);
+
+  if (!dl) {
+    dl = new DataLoader(async (ids: readonly string[]) => {
+      const users = await context.prisma.user.findMany({
+        where: { 
+          userSubscribedTo: { 
+            some: {
+              authorId: {
+                in: ids as string[],
+              }
+            }
+          }
         },
-      },
-    },
-  });
+        include: { 
+          userSubscribedTo: true,
+        },
+      });
+
+    const sortedInIdsOrder = ids.map(id => 
+      users.filter(user => 
+        user.userSubscribedTo.some(subscriber => subscriber.authorId === id),
+      ));
+
+    return sortedInIdsOrder;
+    });
+
+  dataloaders.set(info.fieldNodes, dl);
+  }
+
+  return dl.load(source.id) as Promise<UserType[] | null>;
 };
+
