@@ -99,17 +99,118 @@ export const userObjectType: GraphQLObjectType = new GraphQLObjectType({
   })
 })
 
-
-export const profileInputType = new GraphQLInputObjectType({
-  name: 'ProfileInput',
-  fields: {
-    isMale: { 
-      type: new GraphQLNonNull(GraphQLBoolean)
+export const CreateUserType = new GraphQLInputObjectType({
+  name: 'CreateUserInput',
+  fields: () => ({
+    name: { 
+      type: GraphQLString,
     },
-    yearOfBirth: { 
-      type: new GraphQLNonNull(GraphQLInt) 
+    balance: {
+      type: GraphQLFloat,
     },
-  }
+  }),
 });
+
+
+export const DeleteUserType = new GraphQLInputObjectType({
+  name: 'DeleteUserInput',
+  fields: () => ({
+      userId: { 
+        type: UUIDType,
+      },
+  }),
+});
+
+export const ChangeUserType = new GraphQLInputObjectType({
+  name: 'ChangeUserInput',
+  fields: () => ({
+    name: { 
+      type: GraphQLString,
+    },
+    balance: {
+      type: GraphQLFloat,
+    },
+  }),
+});
+
+export const CreatePostType = new GraphQLInputObjectType({
+  name: 'CreatePostInput',
+  fields: () => ({
+      title: { 
+        type: GraphQLString,
+      },
+      content: { 
+        type: GraphQLString,
+      },
+      authorId: { 
+        type: GraphQLString,
+      },
+  }),
+});
+
+export const DeletePostType = new GraphQLInputObjectType({
+  name: 'DeletePostInput',
+  fields: () => ({
+      postId: { 
+        type: UUIDType,
+      },
+  }),
+});
+
+export const ChangePostType = new GraphQLInputObjectType({
+  name: 'ChangePostInput',
+  fields: () => ({
+      title: { 
+        type: GraphQLString,
+      },
+      content: { 
+        type: GraphQLString,
+      },
+  }),
+});
+
+
+export const CreateProfileType = new GraphQLInputObjectType({
+  name: 'CreateProfileInput',
+  fields: () => ({
+      isMale: { 
+        type: GraphQLBoolean,
+      },
+      yearOfBirth: { 
+        type: GraphQLInt,
+      },
+      memberTypeId: { 
+        type: memberTypeIdEnum,
+      },
+      userId: { 
+        type: GraphQLString,
+      },
+  }),
+});
+
+export const DeleteProfileType = new GraphQLInputObjectType({
+  name: 'DeleteProfileInput',
+  fields: () => ({
+      postId: { 
+        type: UUIDType,
+      },
+  }),
+});
+
+export const ChangeProfileType = new GraphQLInputObjectType({
+  name: 'ChangeProfileInput',
+  fields: () => ({
+   isMale: { 
+        type: GraphQLBoolean,
+      },
+      yearOfBirth: { 
+        type: GraphQLInt,
+      },
+      memberTypeId: { 
+        type: memberTypeIdEnum,
+      },
+  }),
+});
+
 
 
