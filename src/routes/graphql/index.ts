@@ -2,12 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { createGqlResponseSchema, gqlResponseSchema } from './schemas.js';
-import { graphql, GraphQLSchema, GraphQLObjectType, GraphQLNonNull, GraphQLList, GraphQLString } from 'graphql';
+import { graphql, GraphQLSchema, GraphQLObjectType, GraphQLNonNull, GraphQLList, GraphQLString, validate, parse } from 'graphql';
 import { UUIDType } from './types/uuid.js';
 import { PrismaClient } from '@prisma/client';
 import { MemberTypeId } from '../member-types/schemas.js';
 import { ChangePostType, ChangeProfileType, ChangeUserType, CreatePostType, CreateProfileType, CreateUserType, DeletePostType, DeleteProfileType, memberTypeIdEnum, memberTypeObjectType, postObjectType, profileObjectType, userObjectType } from './objectTypes.js';
-
+import depthLimit from 'graphql-depth-limit'
 
 const rootQuery = new GraphQLObjectType({
   name: 'Query',
@@ -329,9 +329,17 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
         200: gqlResponseSchema,
       },
     },
+    
     async handler(req) {
 
     const { query, variables } = req.body;
+
+    const errors = validate(gqlSchema, parse(req.body.query), [depthLimit(5)]);
+      if (errors.length > 0) {
+        return { 
+          errors, 
+        };
+      }
 
     const graphql1 = graphql({
         schema: gqlSchema, 
